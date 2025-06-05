@@ -2,14 +2,14 @@ import mongoose, { mongo, Schema } from "mongoose";
 
 const PostSchema = new Schema({
 
-    userid: {
+    userId: {
         required: true,
         type: String
     },
     content: {
         type: String
     },
-    imageurl: {
+    imageUrl: {
         type: String
     },
     likes:{
@@ -18,11 +18,11 @@ const PostSchema = new Schema({
     comments:{
         //ref
     },
-    likescount: {
+    likesCount: {
         type: Number,
         default: 0
     },
-    commentscount: {
+    commentsCount: {
         type: Number,
         default: 0
     }
