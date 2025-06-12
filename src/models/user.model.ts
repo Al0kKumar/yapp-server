@@ -1,49 +1,36 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from 'mongoose';
 
-const UserSchema = new Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true, 
-        trim: true, 
-        minlength: 3 
+const userSchema = new mongoose.Schema({
+  userName: { 
+    type: String, required: true, unique: true, maxlength: 15 
     },
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        match: [/.+@.+\..+/, 'Please fill a valid email address'] // Basic email validation
+  email: { 
+    type: String, required: true, unique: true 
     },
-    password: {
-        type: String,
-        required: true,
-        minlength: 6 
+  password: { 
+    type: String, 
+    required: true
     },
-    profilePic: { 
-        type: String,
-        default: 'https://default-profile-pic-url.com/avatar.png' // Default avatar
+  name: { 
+    type: String 
     },
-    coverPic: { 
-        type: String,
-        default: 'https://default-cover-pic-url.com/cover.png' // Default cover
+  bio: { 
+    type: String 
     },
-    bio: {
-        type: String,
-        maxlength: 160 
+  profileImageUrl: {
+     type: String 
     },
-    followers: [{ 
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    following: [{ 
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }]
-}, {
-    timestamps: true 
-});
+  bannerImageUrl: {
+     type: String 
+    },
+  followersCount: {
+     type: Number,
+     default: 0 
+    },
+  followingCount: { 
+    type: Number, 
+    default: 0 
+    }
+}, { timestamps: true });
 
-
-const User = mongoose.model('User', UserSchema);
-export default User;
+export default mongoose.model('User', userSchema);
