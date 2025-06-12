@@ -1,57 +1,105 @@
-import { Request, Response } from "express";
-import Post from "../models/post.model";
+import Post from '../models/post.model';
+import User from '../models/user.model';
+import mongoose from 'mongoose';
 
-export const createPost = (req: Request,res: Response) => {
-    const userId = req.id;
-    const { content , imageUrl } = req.body;
+export const createPost = async (req: any, res: any) => {
+  try {
+    const { userId, content, media, parentPostId } = req.body;
 
-    if(!content && !imageUrl){
-        res.status(401).json({"msg":"Empty post"})
+    const post = new Post({
+      userId,
+      content,
+      media,
+      parentPostId: parentPostId || null
+    });
+
+    await post.save();
+
+    // If it's a reply, increment repliesCount on parent
+    if (parentPostId) {
+      await Post.findByIdAndUpdate(parentPostId, {
+        $inc: { repliesCount: 1 }
+      });
     }
 
-    if(content && imageUrl){
-        const newPost = Post.create({content,userId,imageUrl});
+    res.status(201).json(post);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create tweet' });
+  }
+};
 
-        if(!newPost){
-            res.status(401).json({"msg":" could not create post"})
+export const getPostById = async (req: any, res: any) => {
+  try {
+    const post = await Post.findById(req.params.id).populate('userId', 'username name profileImageUrl');
+    if (!post) return res.status(404).json({ error: 'Tweet not found' });
+    res.status(200).json(post);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const deletePost = async (req: any, res: any) => {
+  try {
+    const { id } = req.params;          // post id
+    const { userId } = req.body;        // current user id
+
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    if (post.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this post' });
+    }
+
+    await Post.findByIdAndDelete(id);
+
+    res.json({ message: 'Post deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const getUserPosts = async (req: any, res: any) => {
+  try {
+    const posts = await Post.find({ userId: req.params.uid }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const getFeedPosts = async (req: any, res: any) => {
+  try {
+    const userId = req.params.uid;
+
+    // Get all followings of user
+    const followings = await User.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+      {
+        $lookup: {
+          from: 'followers',
+          localField: '_id',
+          foreignField: 'followerId',
+          as: 'followingList'
         }
-
-        return res.status(201).json({data: newPost, "msg": "Post created sucessfully"});
-    }
-
-    else if(imageUrl){
-        const newPost = Post.create({imageUrl,userId});
-
-        if(!newPost){
-            res.status(401).json({"msg":" could not create post"})
+      },
+      {
+        $project: {
+          followingIds: '$followingList.followingId'
         }
+      }
+    ]);
 
-        return res.status(201).json({data: newPost, "msg": "Post created sucessfully"});
-    }
+    const ids = [userId, ...(followings[0]?.followingIds || [])];
 
-    else{
-        const newPost = Post.create({content,userId});
+    const posts = await Post.find({ userId: { $in: ids } })
+      .sort({ createdAt: -1 })
+      .limit(50);
 
-        if(!newPost){
-            res.status(401).json({"msg":" could not create post"})
-        }
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
-        return res.status(201).json({data: newPost, "msg": "Post created sucessfully"});
-    }
-}
 
-export const deletePost = (req: Request, res: Response) => {
-
-}
-
-export const getAllPost = (req: Request, res: Response) => {
-
-}
-
-export const getPost = (req: Request, res: Response) => {
-
-}
-
-export const updatePost = (req: Request, res: Response) => {
-
-}
